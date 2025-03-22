@@ -1,74 +1,16 @@
-import os
-import pandas as pd
-import qdrant_client
-from dotenv import load_dotenv
-from langchain.schema import Document
-from langchain.vectorstores import Qdrant
-from langchain.embeddings import OpenAIEmbeddings
-from qdrant_client.http.models import VectorParams, Distance
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+import warnings
+
+from src.utils import format_data_n_get_documents, get_vector_store, get_chunked_data, store_data_to_vdb
+from src.config import DATA_DUMP_FILE_PATH, QDRANT_HOST, QDRANT_API_KEY, QDRANT_COLLECTION_NAME, CHUNK_SIZE, CHUNK_OVERLAP, OPENAI_API_KEY
 
 
+warnings.filterwarnings("ignore")
 
+if __name__=="__main__":
+    documents=format_data_n_get_documents(DATA_DUMP_FILE_PATH=DATA_DUMP_FILE_PATH)
 
-load_dotenv()
+    vector_store=get_vector_store(QDRANT_HOST=QDRANT_HOST, API_KEY=QDRANT_API_KEY, QDRANT_COLLECTION_NAME=QDRANT_COLLECTION_NAME, OPENAI_API_KEY=OPENAI_API_KEY)
 
-QDRANT_HOST = os.getenv("QDRANT_HOST")
-API_KEY = os.getenv("API_KEY")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-QDRANT_COLLECTION_NAME = "imdb"
+    chunked_documents=get_chunked_data(documents=documents, CHUNK_SIZE=CHUNK_SIZE, CHUNK_OVERLAP=CHUNK_OVERLAP)
 
-# Load IMDb dataset
-df = pd.read_csv("C:/Users/saisu/Documents/Learning/RAG_project_imdb/data/imdb_top_1000.csv")
-
-# Convert rows into LangChain Document format
-documents = [
-    Document(
-        metadata={"title": row["Series_Title"], "year": row["Released_Year"], "genre": row["Genre"], "rating": row["IMDB_Rating"]},
-        page_content=(
-            f"Movie: {row['Series_Title']}, Released: {row['Released_Year']}, Genre: {row['Genre']}, "
-            f"Rating: {row['IMDB_Rating']}, Director: {row['Director']},  Overview: {row['Overview']}"
-            f"Starring: {row['Star1']}, {row['Star2']}, {row['Star3']}, {row['Star4']}."
-        )
-    )
-    for _, row in df.iterrows()
-]
-
-# Initialize Qdrant Client
-client = qdrant_client.QdrantClient(url=QDRANT_HOST, api_key=API_KEY, timeout=120)
-
-# Check if collection exists, then create it
-if not client.collection_exists(QDRANT_COLLECTION_NAME):
-    client.create_collection(
-        collection_name=QDRANT_COLLECTION_NAME,
-        vectors_config=VectorParams(size=1536, distance=Distance.COSINE)
-    )
-
-# Initialize embeddings
-os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
-embeddings = OpenAIEmbeddings()
-
-# Connect vector store
-vector_store = Qdrant(
-    client=client,
-    collection_name=QDRANT_COLLECTION_NAME,
-    embeddings=embeddings
-)
-
-# Define text splitter
-text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=1000,
-    chunk_overlap=50,
-    separators=["\n"]
-)
-
-# Process documents and split text correctly
-chunked_documents = []
-for doc in documents:
-    chunks = text_splitter.split_text(doc.page_content)  # Use page_content instead of passing Document object
-    chunked_documents.extend(chunks)
-
-# Display some chunked samples
-print(chunked_documents[:5])
-
-vector_store.add_texts(chunked_documents)
+    store_data_to_vdb(vector_store=vector_store, chunked_documents=chunked_documents)
