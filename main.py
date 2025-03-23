@@ -2,6 +2,7 @@ import os
 import certifi
 import uvicorn
 import warnings
+from typing import List, Dict
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from pymongo import MongoClient
@@ -20,6 +21,9 @@ MONGODB_URI = os.getenv("MONGODB_URI")
 client = MongoClient(MONGODB_URI, tlsCAFile=certifi.where())  # SSL handshake failed
 db = client["chat_db"]  # Database Name
 users_collection = db["users"]  # Collection Name
+
+# Define a maximum context window (for last 5 messages)
+CONTEXT_WINDOW = 5
 
 app = FastAPI()
 
@@ -40,21 +44,30 @@ def home():
 @app.post("/query")
 async def query_qdrant(request: QueryRequest):
     try:
-        # Get response from the retriever
-        response = get_response(query=request.user_query, retriever=retriever)
-
-        # Find or create user document
+        # Fetch or create user document
         user_document = users_collection.find_one({"user_id": request.user_id})
         if not user_document:
-            # Create a new user document if it doesn't exist
             user_document = {"user_id": request.user_id, "history": []}
             users_collection.insert_one(user_document)
 
-        # Update chat history
+        # Get the user's chat history
+        chat_history: List[Dict] = user_document.get("history", [])
+
+        # Pass the chat history as context to the retriever
+        response = get_response(query=request.user_query, retriever=retriever, chat_history=chat_history)
+
+        # Update chat history with the new query and response
         new_history_entry = {"query": request.user_query, "response": response}
+        chat_history.append(new_history_entry)
+
+        # Limit the history to the context window
+        if len(chat_history) > CONTEXT_WINDOW:
+            chat_history = chat_history[-CONTEXT_WINDOW:]
+
+        # Update the user document in MongoDB
         users_collection.update_one(
             {"user_id": request.user_id},
-            {"$push": {"history": new_history_entry}}
+            {"$set": {"history": chat_history}}
         )
 
         return {"answer": response}

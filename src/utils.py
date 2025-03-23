@@ -1,6 +1,7 @@
 import re
 import pandas as pd
 import qdrant_client
+from typing import List, Dict
 from langchain_groq import ChatGroq
 from langchain_qdrant import Qdrant
 from langchain.schema import Document
@@ -108,20 +109,25 @@ def get_retriever(GROQ_API_KEY, MODEL_NAME_LLAMA, vector_store):
         raise ImdbException(e)
     
 
-def get_response(query, retriever):
-    try:
-        # Get response
-        response=retriever.invoke(query)
-    except Exception as e:
-        raise ImdbException(e)
-    
-    #Check and remove 'query'
-    if 'query' in response:
-        response=remove_query(response)
+def get_response(query: str, retriever, chat_history: List[Dict] = None) -> str:
+    # Check if chat history is provided
+    if chat_history is None:        # Corner case
+        chat_history = []
 
-    #Check and remove '<think>' tag
+    # Format the chat history into a context string
+    context = "\n".join([f"User: {entry['query']}\nBot: {entry['response']}" for entry in chat_history])
+
+    # Combine the context with the current query
+    full_query = f"{context}\nUser: {query}"
+
+    # Get the response from the retriever
+    response = retriever.invoke(full_query)
+
+    # Clean up the response if necessary
+    if 'query' in response:
+        response = remove_query(response)
     if "<think>" in response:
-        response=remove_think_tags(response)
+        response = remove_think_tags(response)
 
     return response
 
