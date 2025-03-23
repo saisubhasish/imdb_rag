@@ -67,6 +67,11 @@ docker-compose up
 - FastAPI Backend: http://localhost:8080
 - Streamlit Frontend: http://localhost:8501
 
+**4. Streamlit UI guide**:
+Enter your user ID under “Enter your User ID:” field.
+Enter your queries under “Ask your question:” field.
+
+
 ## Docker Command	Description
 - docker-compose build:	Build the Docker images.
 - docker-compose up:	Start the services.
