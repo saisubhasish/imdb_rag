@@ -18,14 +18,14 @@ retriever=get_retriever(GROQ_API_KEY=GROQ_API_KEY, MODEL_NAME_LLAMA=MODEL_NAME_L
 
 # Define request model
 class QueryRequest(BaseModel):
-    question: str
+    user_query: str
 
 @app.post("/query")
 async def query_qdrant(request: QueryRequest):
     try:
-        response=get_response(query=request.question, retriever=retriever)
+        response=get_response(query=request.user_query, retriever=retriever)
         return {"answer": response}
-    except Exception as e:
+    except Exception as e:  
         raise HTTPException(status_code=500, detail=str(e))
     
 if __name__=="__main__":
