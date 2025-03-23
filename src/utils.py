@@ -102,7 +102,8 @@ def get_retriever(GROQ_API_KEY, MODEL_NAME_LLAMA, vector_store):
         retriever=RetrievalQA.from_chain_type(
             llm=ChatGroq(api_key=GROQ_API_KEY, model=MODEL_NAME_LLAMA, temperature=0.5, streaming=True),
             chain_type='stuff',
-            retriever=vector_store.as_retriever())
+            retriever=vector_store.as_retriever()
+            )
         return retriever
     
     except Exception as e:
