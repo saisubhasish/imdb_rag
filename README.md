@@ -1,4 +1,4 @@
-# IMDB RAG
+# IMDB RAG POC
 
 ## Flow DIagram
 
@@ -136,4 +136,8 @@ imdb-movie-bot/
 ### Follow-Up Questions
 1. After submitting the initial query, you can ask follow-up questions (e.g., "Which one has the best reviews?").
 2. The system will maintain context and provide relevant responses.
+
+## Enhancements to be done
+1. User signup, loging
+2. Authentication Layer
 
