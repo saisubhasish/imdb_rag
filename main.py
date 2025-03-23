@@ -11,7 +11,7 @@ from fastapi import FastAPI, HTTPException
 
 from src.logger import logging
 from src.utils import get_vector_store, get_retriever, get_response
-from src.config import QDRANT_COLLECTION_NAME, QDRANT_HOST, QDRANT_API_KEY, OPENAI_API_KEY, GROQ_API_KEY, MODEL_NAME_LLAMA
+from src.config import QDRANT_COLLECTION_NAME, QDRANT_HOST, QDRANT_API_KEY, OPENAI_API_KEY, GROQ_API_KEY, MODEL_NAME_LLAMA, MONGODB_URI
 
 warnings.filterwarnings("ignore")
 
@@ -19,7 +19,6 @@ warnings.filterwarnings("ignore")
 load_dotenv()
 
 # MongoDB Connection
-MONGODB_URI = os.getenv("MONGODB_URI")
 client = MongoClient(MONGODB_URI, tlsCAFile=certifi.where())  # SSL handshake failed
 db = client["chat_db"]  # Database Name
 sessions_collection = db["sessions"]  # Collection Name
