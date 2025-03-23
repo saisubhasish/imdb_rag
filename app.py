@@ -1,14 +1,16 @@
-import streamlit as st
+import os
 import requests
+import streamlit as st
 
-API_URL = "http://localhost:8080"  # Base FastAPI URL
+# Use the environment variable for API_URL
+API_URL = os.getenv("API_URL", "http://localhost:8080")  # Fallback to localhost if not set
 
 # Layout setup
 col1, col2 = st.columns([1, 3])  # Left for User ID, Right for Chat interface
 
 with col1:
     st.markdown("### 🆔 User ID")
-    st.text_input("Enter your User ID:", key="user_id", on_change=lambda: start_session())
+    user_id_input = st.text_input("Enter your User ID:", key="user_id", on_change=lambda: start_session())
 
 with col2:
     st.title("### 🎬 Chat with IMDB Movie Bot")
@@ -21,6 +23,8 @@ if "user_query" not in st.session_state:
     st.session_state["user_query"] = ""
 if "bot_response" not in st.session_state:
     st.session_state["bot_response"] = ""
+if "latest_query" not in st.session_state:
+    st.session_state["latest_query"] = ""
 
 # Function to start a session
 def start_session():
@@ -57,13 +61,14 @@ def submit_query():
             st.session_state["bot_response"] = f"Request failed: {e}"
         
         st.session_state["latest_query"] = st.session_state["user_query"]
+        # Clear the input field by resetting the session state
         st.session_state["user_query"] = ""
     else:
         st.error("Please start a session before submitting a query.")
 
 # Chat Section
 with col2:
-    st.text_input("Ask your question:", key="user_query", on_change=submit_query)
+    user_query_input = st.text_input("Ask your question:", key="user_query", on_change=submit_query)
     if st.button("Submit"):
         submit_query()
 
