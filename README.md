@@ -1,6 +1,7 @@
 # IMDB RAG
 
-Flow DIagram
+## Flow DIagram
+
 ![IMDB drawio](https://github.com/user-attachments/assets/a5f9000f-8f85-482b-ae10-6965d4e45c26)
 
 # IMDB Movie Bot
