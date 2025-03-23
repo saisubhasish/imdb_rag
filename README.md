@@ -67,6 +67,14 @@ docker-compose up
 - FastAPI Backend: http://localhost:8080
 - Streamlit Frontend: http://localhost:8501
 
+## Docker Command	Description
+- docker-compose build:	Build the Docker images.
+- docker-compose up:	Start the services.
+- docker-compose up -d:	Start the services in detached mode.
+- docker-compose down:	Stop and remove the services.
+- docker-compose logs -f:	View logs for the services.
+- docker-compose ps:	List running services.
+
 ## Usage
 ### User Interaction
 1. **Start a Session**:
