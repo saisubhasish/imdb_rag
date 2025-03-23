@@ -21,7 +21,7 @@ def format_data_n_get_documents(DATA_DUMP_FILE_PATH):
     try:
         # Convert rows into LangChain Document format
         documents = [
-            Document(
+            Document(           # Maintain metadata
                 metadata={"title": row["Series_Title"], "year": row["Released_Year"], "genre": row["Genre"], "rating": row["IMDB_Rating"]},
                 page_content=(
                     f"Movie: {row['Series_Title']}, Released: {row['Released_Year']}, Genre: {row['Genre']}, "
