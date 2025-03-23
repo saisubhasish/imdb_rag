@@ -1,4 +1,5 @@
 # IMDB RAG POC
+![Screenshot 2025-03-23 214813](https://github.com/user-attachments/assets/62ed1b28-d692-4b3e-aed3-aa001b2110cf)
 
 ## Flow DIagram
 
