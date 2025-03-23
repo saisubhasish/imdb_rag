@@ -35,6 +35,10 @@ The IMDB Movie Bot is a prototype system designed to help users find movies from
 
 ---
 
+Dataset link: https://www.kaggle.com/datasets/harshitshankhdhar/imdb-dataset-of-top-1000-movies-and-tv-shows
+
+---
+
 ## **System Setup**
 
 ### **Prerequisites**
