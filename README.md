@@ -1,139 +1,148 @@
 # IMDB RAG POC
 ![Screenshot 2025-03-23 214813](https://github.com/user-attachments/assets/62ed1b28-d692-4b3e-aed3-aa001b2110cf)
 
-## Flow DIagram
+## Architecture Overview
 ![imdb drawio (1)](https://github.com/user-attachments/assets/e9e7e1ad-f685-4db3-83fd-7ba7a384e6a3)
 
-# IMDB Movie Bot
+## Overview
+The IMDB Movie Bot is a Retrieval-Augmented Generation (RAG) system that enables natural language search across a dataset of top 1000 IMDB movies. It combines vector search with LLM-powered response generation for intuitive movie discovery.
 
-The IMDB Movie Bot is a prototype system designed to help users find movies from an IMDb dataset using natural language queries. The system leverages a Large Language Model (LLM) and a vector store to process user queries, extract relevant filters (e.g., genre, actors, plot details), and return a list of movies with a natural language summary. Built using the Langchain framework, the system also supports follow-up questions related to the initial query.
+## Key Features
+- 🗣️ Natural language query understanding
+- � Context-aware follow-up questions
+- 🏎️ High-performance vector search via Qdrant
+- 🔒 JWT-based user authentication
+- 📊 Session-based conversation history
+- 🐳 Dockerized deployment
 
----
+## Technology Stack
+| Component               | Technology                          |
+|-------------------------|-------------------------------------|
+| Vector Database         | Qdrant Cloud                        |
+| LLM Provider            | Groq (Llama 3 70B)                  |
+| Embeddings              | OpenAI                              |
+| Backend Framework       | FastAPI                             |
+| Frontend                | Streamlit                           |
+| Database                | MongoDB                             |
+| Authentication          | JWT/OAuth2                          |
+| Containerization        | Docker + Docker Compose             |
 
-## **Features**
+## Dataset
+The system uses the [IMDB Top 1000 Movies Dataset](https://www.kaggle.com/datasets/harshitshankhdhar/imdb-dataset-of-top-1000-movies-and-tv-shows) from Kaggle.
 
-- **Natural Language Query Processing**: Interpret conversational queries to find movies.
-- **Filter Extraction**: Extract filters like genre, actors, and plot details from user queries.
-- **Vector Store Integration**: Efficiently search and retrieve movies using a vector store.
-- **Natural Language Summaries**: Generate summaries of movie results in natural language.
-- **Follow-Up Interaction**: Handle follow-up questions based on the initial query context.
-- **User Session**: Manage user sessions and maintain context for follow-up queries.
+## Getting Started
 
----
+### Prerequisites
+- Docker 20.10+
+- Python 3.11
+- API keys for:
+  - Groq
+  - OpenAI
+  - Qdrant Cloud
 
-## **Technology Stack**
-
-- **Framework**: [Langchain](https://www.langchain.com/)
-- **Vector Store**: [Qdrant](https://qdrant.tech/)
-- **LLM**: [Groq](https://groq.com/) (LLaMA 3.2)
-- **Backend**: [FastAPI](https://fastapi.tiangolo.com/)
-- **Frontend**: [Streamlit](https://streamlit.io/)
-- **Database**: [MongoDB](https://www.mongodb.com/)
-- **Embeddings**: [OpenAI Embeddings](https://platform.openai.com/docs/guides/embeddings)
-- **Containerization**: [Docker](https://www.docker.com/)
-
----
-
-Dataset link: https://www.kaggle.com/datasets/harshitshankhdhar/imdb-dataset-of-top-1000-movies-and-tv-shows
-
----
-
-## **System Setup**
-
-### **Prerequisites**
-
-1. **Docker**: Install Docker from [here](https://docs.docker.com/get-docker/).
-2. **Python**: Ensure Python 3.11.11 is installed.
-3. **Environment Variables**: Create a `.env` file in the root directory with the following variables:
-
-   ```env
-   GROQ_API_KEY="your_groq_api_key"
-   OPENAI_API_KEY="your_openai_api_key"
-   QDRANT_API_KEY="your_qdrant_api_key"
-   QDRANT_HOST="your_qdrant_host"
-   MONGODB_URI="your_mongodb_uri"
-
-## Steps to Run the System
-**1. Clone the Repository**:
-
+### Installation
+1. Clone the repository:
 ```
 git clone https://github.com/your-username/imdb-movie-bot.git
 cd imdb-movie-bot
 ```
-
-**2. Build and Run the Docker Containers**:
-
+2. Set up environment variables:
 ```
-docker-compose build
-docker-compose up
+cp .env.example .env
+# Fill in your API keys in the .env file
 ```
-**3.Access the Application**:
-- FastAPI Backend: http://localhost:8080
-- Streamlit Frontend: http://localhost:8501
+3. Build and launch services:
+```
+docker-compose up --build
+```
 
-## Docker Command	Description
-- docker-compose build:	Build the Docker images.
-- docker-compose up:	Start the services.
-- docker-compose up -d:	Start the services in detached mode.
-- docker-compose down:	Stop and remove the services.
-- docker-compose logs -f:	View logs for the services.
-- docker-compose ps:	List running services.
+### Accessing the System
 
-## Usage
-### User Interaction
-1. **Start a Session**:
-- Enter your User ID in the Streamlit interface and click "Start Session".
-- A unique session ID will be generated and displayed.
+Service	      URL
 
-2. **Submit a Query**:
-- Enter a natural language query (e.g., "Find action movies with Tom Cruise from the 1990s").
-- The system will process the query, extract filters, and return a list of relevant movies with a summary.
+API Docs:	http://localhost:8080/docs
 
-3. **Follow-Up Questions**:
-- Ask follow-up questions related to the initial query (e.g., "Which one has the best reviews?").
-- The system will maintain context and provide relevant responses.
+Web Interface:	http://localhost:8501
 
-## Code Structure
+MongoDB Admin:	http://localhost:8081
 
+## Usage Guide
+
+1. User Authentication
+- Register a new account via the Streamlit sidebar
+- Login with your credentials to obtain a JWT token
+
+2. Session Management
+- Start a new session with your User ID
+- Each session maintains independent conversation history
+
+3. Making Queries
+
+Example searches:
+```
+"Find sci-fi movies from the 1980s with high ratings"
+"Show me action movies starring Tom Cruise"
+"What are the best comedies from the 2000s?"
+```
+
+4. Follow-up Questions
+The system maintains context within each session:
+```
+Initial query: "Show me Christopher Nolan movies"
+Follow-up: "Which one has the highest rating?"
+```
+### Project Structure
 ```
 imdb-movie-bot/
-├── data/                     # Dataset files
-├── notebooks/                # Jupyter notebooks for experimentation
-├── research_notebook/        # Research and development notes
-├── src/                      # Source code
-│   ├── config.py             # Configuration settings
-│   ├── exception.py          # Custom exception handling
-│   ├── logger.py             # Logging setup
-│   ├── utils.py              # Utility functions
-├── user_authentication/      # User authentication module
-├── .dockerignore             # Files to ignore in Docker builds
-├── .gitignore                # Files to ignore in Git
-├── Dockerfile                # Dockerfile for containerization
-├── LICENSE                   # License file
-├── README.md                 # Project documentation
-├── app.py                    # Streamlit frontend
-├── compose.yaml              # Docker Compose configuration
-├── data_dump.py              # Script for preprocessing and loading data
-├── main.py                   # FastAPI backend
-├── requirements.txt          # Python dependencies
-└── test.py                   # Test scripts
+├── docker/                  # Docker-related files
+├── data/                    # Dataset and processing scripts
+├── src/
+│   ├── config/              # Configuration management
+│   ├── auth/                # Authentication services
+│   ├── models/              # Pydantic models
+│   ├── services/            # Core business logic
+│   ├── utils/               # Helper functions
+│   └── main.py              # FastAPI entrypoint
+├── tests/                   # Test cases
+├── frontend/                # Streamlit application
+├── docker-compose.yml       # Service orchestration
+├── requirements.txt         # Python dependencies
+└── README.md               # Documentation
 ```
 
-## User Guide
-### Starting a Session
-1. Open the Streamlit frontend at http://localhost:8501.
-2. Enter your User ID in the "Enter your User ID" field.
-3. Click "Start Session" to generate a unique session ID.
+## API Reference
+The FastAPI backend provides these key endpoints:
 
-### Submitting a Query
-1. Enter your query in the "Ask your question" field (e.g., "Find action movies with Tom Cruise").
-2. Click "Submit" to process the query and view the results.
 
-### Follow-Up Questions
-1. After submitting the initial query, you can ask follow-up questions (e.g., "Which one has the best reviews?").
-2. The system will maintain context and provide relevant responses.
+Endpoint      	            Method	            Description
+/register	               POST	            User registration
+/generate_access_token	   POST	            JWT token generation
+/start_session	            POST	            Initialize new chat session
+/query	                  POST	            Submit movie search query
 
-# Enhancements to be done
-1. User signup, login
-2. Authentication Layer
+## Development Commands
+```
+# Run tests
+docker-compose run app pytest
+
+# View logs
+docker-compose logs -f
+
+# Rebuild containers
+docker-compose up --build
+
+# Teardown environment
+docker-compose down -v
+```
+
+## Roadmap
+- Enhanced user profiles
+
+- Personalized recommendations
+
+- Advanced filtering options
+
+- Rate limiting
+
+- Async query processing
 
