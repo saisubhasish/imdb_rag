@@ -264,6 +264,7 @@ class User(BaseModel):
 
 class UserInDB(User):
     hashed_password: str
+    id: str | None = None
 
 class RequestState(BaseModel):
     user_id: str
@@ -279,11 +280,13 @@ async def get_password_hash(password):
 
 async def get_user(username: str):
     client = MongoClient(MONGODB_URI)
-    db = client["chat_db"]  # Database Name
-    users_collection = db["users"]  # Collection Name
+    db = client["chat_db"]
+    users_collection = db["users"]
     user_data = users_collection.find_one({"username": username})
     if user_data:
-        return UserInDB(**user_data)  # Convert MongoDB document to Pydantic model
+        # Convert MongoDB document to Pydantic model
+        user_data["id"] = str(user_data["_id"])  # Add the id field
+        return UserInDB(**user_data)
     return None
 
 async def authenticate_user(username: str, password: str):
@@ -303,3 +306,10 @@ async def create_access_token(data: dict, expires_delta: timedelta | None = None
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
+async def verify_token(token: str):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except jwt.PyJWTError:
+        return None
