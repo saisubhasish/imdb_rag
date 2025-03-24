@@ -39,7 +39,7 @@ app = FastAPI()
 # CORS settings
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # For development only
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -47,13 +47,13 @@ app.add_middleware(
 
 # Define request model
 class QueryRequest(BaseModel):
-    user_id: int  # Add user_id to the request model
+    user_id: str  # Add user_id to the request model
     session_id: str  # Unique session ID for maintaining context
     user_query: str
 
 # Define request model for session start
 class StartSessionRequest(BaseModel):
-    user_id: int
+    user_id: str  
 
 class UserCreate(BaseModel):
     username: str
@@ -80,6 +80,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 async def home():
     return {"message": "Server is up and running."}
 
+# Generate a numeric ID for new users
 @app.post("/register")
 async def register_user(user_data: UserCreate):
     existing_user = await get_user(user_data.username)
@@ -94,22 +95,26 @@ async def register_user(user_data: UserCreate):
         "email": user_data.email,
         "full_name": user_data.full_name,
         "disabled": False
+        # Let MongoDB generate the _id automatically
     }
     
-    users_collection.insert_one(user_dict)
-    return {"message": "User created successfully"}
+    result = users_collection.insert_one(user_dict)
+    return {
+        "message": "User created successfully",
+        "user_id": str(result.inserted_id)  # Return string ID
+    }
 
 @app.get("/user_info")
 async def get_user_info(current_user: UserInDB = Depends(get_current_user)):
     return {
         "username": current_user.username,
-        "user_id": current_user.id,  # Now this will work
+        "user_id": current_user.id,  # Now returns string ID
         "email": current_user.email,
         "full_name": current_user.full_name
     }
 
 @app.post("/generate_access_token")
-async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> Token:
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     user = await authenticate_user(form_data.username, form_data.password)
     if not user:
         raise HTTPException(
@@ -127,7 +132,7 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
 async def start_session(request: StartSessionRequest, current_user: UserInDB = Depends(get_current_user)):
     session_id = str(uuid.uuid4())
     sessions_collection.insert_one({
-        "user_id": request.user_id,
+        "user_id": request.user_id,  # Now accepts string
         "session_id": session_id,
         "history": [],
         "username": current_user.username
