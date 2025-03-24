@@ -21,16 +21,14 @@ from src.config import MONGODB_URI
 
 
 async def format_data_n_get_documents(DATA_DUMP_FILE_PATH):
-    # Load IMDb dataset
     """
-    Function to format the IMDb data dump into LangChain Document format
-    and return a list of Documents.
+    Read the IMDb data dump CSV file and convert each row into a LangChain Document format.
 
     Args:
-        DATA_DUMP_FILE_PATH (str): Path to the IMDb data dump CSV file
+        DATA_DUMP_FILE_PATH (str): The path to the IMDb data dump CSV file.
 
     Returns:
-        List[Document]: List of Documents with metadata and page_content
+        List[Document]: A list of LangChain Document objects, each containing metadata and page content.
     """
     df = pd.read_csv(DATA_DUMP_FILE_PATH)
 
@@ -54,17 +52,18 @@ async def format_data_n_get_documents(DATA_DUMP_FILE_PATH):
 
 def get_vector_store(QDRANT_HOST, API_KEY, QDRANT_COLLECTION_NAME, OPENAI_API_KEY):
     """
-    Function to initialize a Qdrant vector store with an OpenAI embeddings model.
+    Initialize Qdrant client and vector store with OpenAI embeddings.
 
     Args:
-        QDRANT_HOST (str): Qdrant server URL
-        API_KEY (str): Qdrant API key
-        QDRANT_COLLECTION_NAME (str): Qdrant collection name
-        OPENAI_API_KEY (str): OpenAI API key
+        QDRANT_HOST (str): The URL of the Qdrant server.
+        API_KEY (str): The API key for the Qdrant server.
+        QDRANT_COLLECTION_NAME (str): The name of the Qdrant collection.
+        OPENAI_API_KEY (str): The API key for the OpenAI embeddings.
 
     Returns:
-        Qdrant: Qdrant vector store
+        Qdrant: The initialized vector store with OpenAI embeddings.
     """
+
     try:
         # Initialize Qdrant Client
         client = qdrant_client.QdrantClient(url=QDRANT_HOST, api_key=API_KEY, timeout=120)
@@ -93,17 +92,16 @@ def get_vector_store(QDRANT_HOST, API_KEY, QDRANT_COLLECTION_NAME, OPENAI_API_KE
 
 async def get_chunked_data(documents, CHUNK_SIZE, CHUNK_OVERLAP):
     """
-    Function to split documents into smaller text chunks using LangChain's RecursiveCharacterTextSplitter.
+    Asynchronous function to split documents into smaller text chunks.
 
     Args:
-        documents (List[Document]): List of Documents with metadata and page_content
-        CHUNK_SIZE (int): Size of each chunk
-        CHUNK_OVERLAP (int): Overlap size between chunks
+        documents (list[Document]): List of documents to split.
+        CHUNK_SIZE (int): Size of each chunk in characters.
+        CHUNK_OVERLAP (int): Overlap of each chunk in characters.
 
     Returns:
-        List[str]: List of chunked text strings
+        list[str]: List of chunked documents as strings.
     """
-    
     try:
         # Define text splitter
         text_splitter = RecursiveCharacterTextSplitter(
@@ -128,17 +126,14 @@ async def get_chunked_data(documents, CHUNK_SIZE, CHUNK_OVERLAP):
 
 async def store_data_to_vdb(vector_store, chunked_documents):
     """
-    Function to store the chunked data into a Qdrant vector store.
-
+    Asynchronous function to store chunked documents to Vector DB (Qdrant).
+    
     Args:
-        vector_store (Qdrant): Qdrant vector store
-        chunked_documents (List[str]): List of chunked text strings
-
+        vector_store (Qdrant): Qdrant vector store.
+        chunked_documents (list[str]): List of chunked documents as strings.
+    
     Returns:
         None
-
-    Raises:
-        ImdbException: If an error occurs during storing the data to vector store
     """
     try:
         # Store data to Qdrant
@@ -150,20 +145,19 @@ async def store_data_to_vdb(vector_store, chunked_documents):
 
 def get_retriever(GROQ_API_KEY, MODEL_NAME_LLAMA, vector_store):
     """
-    Function to initialize a RetrievalQA retriever using the specified Groq API key, model name, and Qdrant vector store.
+    Asynchronous function to get a retriever instance from ChatGroq and Qdrant vector store.
 
     Args:
-        GROQ_API_KEY (str): API key for accessing the Groq model
-        MODEL_NAME_LLAMA (str): Name of the LLaMA model to use
-        vector_store (Qdrant): Qdrant vector store to be used as the retriever
+        GROQ_API_KEY (str): API key for ChatGroq.
+        MODEL_NAME_LLAMA (str): Model name for the LLaMA model.
+        vector_store (Qdrant): Qdrant vector store.
 
     Returns:
-        RetrievalQA: Initialized retriever object for performing retrieval-based QA
+        retriever (RetrievalQA): Retriever instance.
 
     Raises:
-        ImdbException: If an error occurs during retriever initialization
+        ImdbException: If there is an error in initializing the retriever.
     """
-
     try:
         # Initialize retriever
         retriever= RetrievalQA.from_chain_type(
@@ -177,19 +171,17 @@ def get_retriever(GROQ_API_KEY, MODEL_NAME_LLAMA, vector_store):
         raise ImdbException(e, sys)
     
 def get_response(query: str, retriever, chat_history: List[Dict] = None) -> str:
-    # Check if chat history is provided
     """
-    Function to get a response from the retriever given the user's query and an optional chat history.
+    Gets a response to a query from the model.
 
     Args:
-        query (str): The user's query
-        retriever: The retriever object to use for generating the response
-        chat_history (List[Dict], optional): The chat history to use as context for the response. Defaults to None.
+        query (str): The query to get a response to.
+        retriever (RetrievalQA): The retriever to get the response from.
+        chat_history (Optional[List[Dict]]): The chat history to use as context. Defaults to None.
 
     Returns:
-        str: The response from the retriever
+        str: The response to the query.
     """
-
     if chat_history is None:        # Corner case
         chat_history = []
 
@@ -216,27 +208,29 @@ def get_response(query: str, retriever, chat_history: List[Dict] = None) -> str:
     return response
 
 def remove_think_tags(text):
-    """Remove think tags from the text. Think tags are strings that start with "<think>" and end with "</think>" (inclusive).
+    """
+    Remove any "<think> </think>" tags from the text to prevent the model from
+    thinking out loud. This is useful for removing the model's internal
+    thought process from the response.
 
     Args:
-        text (str): The text to remove think tags from
+        text (str): The text to remove the tags from.
 
     Returns:
-        str: The text with think tags removed
+        str: The text with any "<think>" tags removed.
     """
     return re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
 
 def remove_query(text):
     """
-    Extract and return the 'result' field from a given text dictionary.
+    Remove the query from the text.
 
     Args:
-        text (dict): A dictionary containing various fields, including 'result'.
+        text (Dict[str, str]): The text to remove the query from. The text should have a key "result" with the result as the value.
 
     Returns:
-        str: The value associated with the 'result' key in the text dictionary.
+        str: The text with the query removed.
     """
-
     return text['result']
 
 # JWT Authentication Constants
@@ -273,12 +267,41 @@ class RequestState(BaseModel):
 
 # JWT Authentication Functions
 async def verify_password(plain_password, hashed_password):
+    """
+    Verifies that a plain text password matches its hashed counterpart.
+
+    Args:
+        plain_password (str): The plain text password to verify.
+        hashed_password (str): The hashed password to verify against.
+
+    Returns:
+        bool: True if the plain text password matches the hashed password, False otherwise.
+    """
+
     return pwd_context.verify(plain_password, hashed_password)
 
 async def get_password_hash(password):
+    """
+    Generates a hashed version of the given password.
+
+    Args:
+        password (str): The plain text password to hash.
+
+    Returns:
+        str: The hashed password.
+    """
     return pwd_context.hash(password)
 
 async def get_user(username: str):
+    """
+    Retrieves a user from the database based on their username.
+
+    Args:
+        username (str): The username to retrieve the user by.
+
+    Returns:
+        UserInDB: The user associated with the given username, or None if no user is found.
+    """
     client = MongoClient(MONGODB_URI)
     db = client["chat_db"]
     users_collection = db["users"]
@@ -290,6 +313,16 @@ async def get_user(username: str):
     return None
 
 async def authenticate_user(username: str, password: str):
+    """
+    Authenticates a user based on their username and password.
+
+    Args:
+        username (str): The username to authenticate.
+        password (str): The password to authenticate with.
+
+    Returns:
+        UserInDB | False: The authenticated user if successful, False otherwise.
+    """
     user = await get_user(username)
     if not user:
         return False
@@ -298,6 +331,16 @@ async def authenticate_user(username: str, password: str):
     return user
 
 async def create_access_token(data: dict, expires_delta: timedelta | None = None):
+    """
+    Creates a JWT access token for the given data.
+
+    Args:
+        data (dict): The payload data to encode into the token.
+        expires_delta (timedelta | None, optional): The amount of time after which the token should expire. Defaults to None.
+
+    Returns:
+        str: The encoded JWT access token.
+    """
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
@@ -308,6 +351,15 @@ async def create_access_token(data: dict, expires_delta: timedelta | None = None
     return encoded_jwt
 
 async def verify_token(token: str):
+    """
+    Verifies and decodes a JWT token.
+
+    Args:
+        token (str): The JWT token to verify.
+
+    Returns:
+        dict | None: The decoded payload if the token is valid, None otherwise.
+    """
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
