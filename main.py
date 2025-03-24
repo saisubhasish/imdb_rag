@@ -1,4 +1,3 @@
-import os
 import uuid
 import certifi
 import uvicorn
@@ -10,12 +9,12 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 from pymongo import MongoClient
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import OAuth2PasswordRequestForm
-from fastapi import FastAPI, HTTPException, Depends, status, Form
+from fastapi import FastAPI, HTTPException, Depends, status
+from fastapi.security import OAuth2PasswordRequestForm, HTTPBearer, HTTPAuthorizationCredentials
 
 from src.logger import logging
-from src.utils import get_vector_store, get_retriever, get_response, Token, create_access_token, authenticate_user, get_password_hash, get_user
 from src.config import QDRANT_COLLECTION_NAME, QDRANT_HOST, QDRANT_API_KEY, OPENAI_API_KEY, GROQ_API_KEY, MODEL_NAME_LLAMA, MONGODB_URI, ACCESS_TOKEN_EXPIRE_MINUTES
+from src.utils import get_vector_store, get_retriever, get_response, Token, create_access_token, authenticate_user, get_password_hash, get_user, verify_token, UserInDB
 
 
 warnings.filterwarnings("ignore")
@@ -27,6 +26,10 @@ load_dotenv()
 client = MongoClient(MONGODB_URI, tlsCAFile=certifi.where())  # SSL handshake failed
 db = client["chat_db"]  # Database Name
 sessions_collection = db["sessions"]  # Collection Name
+users_collection = db["users"]
+
+# Security
+security = HTTPBearer()
 
 # Define a maximum context window (for last 5 messages)
 CONTEXT_WINDOW = 5
@@ -52,36 +55,58 @@ class QueryRequest(BaseModel):
 class StartSessionRequest(BaseModel):
     user_id: int
 
+class UserCreate(BaseModel):
+    username: str
+    password: str
+    email: str | None = None
+    full_name: str | None = None
+
+# Helper function to verify tokens
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
+    payload = await verify_token(token)
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    user = await get_user(payload.get("sub"))
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
 @app.get("/")
 async def home():
     return {"message": "Server is up and running."}
 
 @app.post("/register")
-async def register_user(username: str = Form(...), password: str = Form(...),  email: str = Form(None), full_name: str = Form(None)):
-    # Check if user already exists
-    existing_user = await get_user(username)
+async def register_user(user_data: UserCreate):
+    existing_user = await get_user(user_data.username)
     if existing_user:
         raise HTTPException(status_code=400, detail="Username already registered")
     
-    # Hash the password
-    hashed_password = await get_password_hash(password)
+    hashed_password = await get_password_hash(user_data.password)
     
-    # Create user document
-    user_data = {
-        "username": username,
+    user_dict = {
+        "username": user_data.username,
         "hashed_password": hashed_password,
-        "email": email,
-        "full_name": full_name,
+        "email": user_data.email,
+        "full_name": user_data.full_name,
         "disabled": False
     }
     
-    # Insert into MongoDB
-    client = MongoClient(MONGODB_URI)
-    db = client["chat_db"]
-    users_collection = db["users"]
-    users_collection.insert_one(user_data)
-    
+    users_collection.insert_one(user_dict)
     return {"message": "User created successfully"}
+
+@app.get("/user_info")
+async def get_user_info(current_user: UserInDB = Depends(get_current_user)):
+    return {
+        "username": current_user.username,
+        "user_id": current_user.id,  # Now this will work
+        "email": current_user.email,
+        "full_name": current_user.full_name
+    }
 
 @app.post("/generate_access_token")
 async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> Token:
@@ -99,51 +124,63 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
     return Token(access_token=access_token, token_type="bearer")
 
 @app.post("/start_session")
-async def start_session(request: StartSessionRequest):
-    """Start a new session for a user"""
-    session_id = str(uuid.uuid4())  # Generate unique session ID
-    sessions_collection.insert_one({"user_id": request.user_id, "session_id": session_id, "history": []})
+async def start_session(request: StartSessionRequest, current_user: UserInDB = Depends(get_current_user)):
+    session_id = str(uuid.uuid4())
+    sessions_collection.insert_one({
+        "user_id": request.user_id,
+        "session_id": session_id,
+        "history": [],
+        "username": current_user.username
+    })
     return {"message": "Session started", "session_id": session_id}
 
 @app.post("/query")
-async def query_qdrant(request: QueryRequest):
+async def query_qdrant(
+    request: QueryRequest,
+    current_user: UserInDB = Depends(get_current_user)
+):
     try:
-        # logging.info(f"Received request: {request}")  # Debugging
-
-        # Fetch session document
-        session_document = sessions_collection.find_one({"user_id": request.user_id, "session_id": request.session_id})
+        # Verify session belongs to authenticated user
+        session_document = sessions_collection.find_one({
+            "user_id": request.user_id,
+            "session_id": request.session_id,
+            "username": current_user.username
+        })
 
         if not session_document:
-            logging.warning(f"No session found for user {request.user_id}, creating a new one.")
-            session_id = str(uuid.uuid4())
-            sessions_collection.insert_one({"user_id": request.user_id, "session_id": session_id, "history": []})
-            request.session_id = session_id
+            raise HTTPException(status_code=404, detail="Session not found or unauthorized")
 
-        chat_history: List[Dict] = session_document.get("history", []) if session_document else []
-        # logging.info(f"Chat history: {chat_history}")  # Debugging
+        chat_history: List[Dict] = session_document.get("history", [])
 
-        # Connect vector store
-        vector_store = get_vector_store(QDRANT_HOST=QDRANT_HOST, API_KEY=QDRANT_API_KEY, QDRANT_COLLECTION_NAME=QDRANT_COLLECTION_NAME, OPENAI_API_KEY=OPENAI_API_KEY)
-        # Build retriever
-        retriever = get_retriever(GROQ_API_KEY=GROQ_API_KEY, MODEL_NAME_LLAMA=MODEL_NAME_LLAMA, vector_store=vector_store)
+        # Get vector store and retriever
+        vector_store = get_vector_store(
+            QDRANT_HOST=QDRANT_HOST,
+            API_KEY=QDRANT_API_KEY,
+            QDRANT_COLLECTION_NAME=QDRANT_COLLECTION_NAME,
+            OPENAI_API_KEY=OPENAI_API_KEY
+        )
+        retriever = get_retriever(
+            GROQ_API_KEY=GROQ_API_KEY,
+            MODEL_NAME_LLAMA=MODEL_NAME_LLAMA,
+            vector_store=vector_store
+        )
 
-        # Pass chat history as context to retriever annd get response
-        response = get_response(query=request.user_query, retriever=retriever, chat_history=chat_history)
-        # logging.info(f"Generated response: {response}")  # Debugging
+        # Get and store response
+        response = get_response(
+            query=request.user_query,
+            retriever=retriever,
+            chat_history=chat_history
+        )
 
-        # Update chat history with new query and response
+        # Update history
         new_history_entry = {"query": request.user_query, "response": response}
         chat_history.append(new_history_entry)
-
-        # Limit the history to the context window
         if len(chat_history) > CONTEXT_WINDOW:
             chat_history = chat_history[-CONTEXT_WINDOW:]
 
-        # Update the session document in MongoDB
         sessions_collection.update_one(
-            {"user_id": request.user_id, "session_id": request.session_id},
-            {"$set": {"history": chat_history}},
-            upsert=True
+            {"_id": session_document["_id"]},
+            {"$set": {"history": chat_history}}
         )
 
         return {"answer": response}
