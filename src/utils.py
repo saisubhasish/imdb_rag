@@ -1,20 +1,26 @@
-import re
 import pandas as pd
 import qdrant_client
+import re, os, jwt, sys
 from typing import List, Dict
+from pydantic import BaseModel
+from pymongo import MongoClient
 from langchain_groq import ChatGroq
 from langchain_qdrant import Qdrant
 from langchain.schema import Document
+from passlib.context import CryptContext
 from langchain.chains import RetrievalQA
 from langchain_openai import OpenAIEmbeddings
+from fastapi.security import OAuth2PasswordBearer
+from datetime import datetime, timedelta, timezone
 from qdrant_client.http.models import VectorParams, Distance
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 from src.logger import logging
 from src.exception import ImdbException
+from src.config import MONGODB_URI
 
 
-def format_data_n_get_documents(DATA_DUMP_FILE_PATH):
+async def format_data_n_get_documents(DATA_DUMP_FILE_PATH):
     # Load IMDb dataset
     """
     Function to format the IMDb data dump into LangChain Document format
@@ -42,7 +48,7 @@ def format_data_n_get_documents(DATA_DUMP_FILE_PATH):
             for _, row in df.iterrows()
         ]
     except Exception as e:
-        raise ImdbException(e)
+        raise ImdbException(e, sys)
 
     return documents
 
@@ -71,7 +77,7 @@ def get_vector_store(QDRANT_HOST, API_KEY, QDRANT_COLLECTION_NAME, OPENAI_API_KE
             )
 
     except Exception as e:
-        raise ImdbException(e)
+        raise ImdbException(e, sys)
 
     # Initialize embeddings
     embeddings = OpenAIEmbeddings(api_key=OPENAI_API_KEY)
@@ -85,7 +91,7 @@ def get_vector_store(QDRANT_HOST, API_KEY, QDRANT_COLLECTION_NAME, OPENAI_API_KE
     
     return vector_store
 
-def get_chunked_data(documents, CHUNK_SIZE, CHUNK_OVERLAP):
+async def get_chunked_data(documents, CHUNK_SIZE, CHUNK_OVERLAP):
     """
     Function to split documents into smaller text chunks using LangChain's RecursiveCharacterTextSplitter.
 
@@ -118,10 +124,9 @@ def get_chunked_data(documents, CHUNK_SIZE, CHUNK_OVERLAP):
         return chunked_documents
     
     except Exception as e:
-        raise ImdbException(e)
+        raise ImdbException(e, sys)
 
-
-def store_data_to_vdb(vector_store, chunked_documents):
+async def store_data_to_vdb(vector_store, chunked_documents):
     """
     Function to store the chunked data into a Qdrant vector store.
 
@@ -141,7 +146,7 @@ def store_data_to_vdb(vector_store, chunked_documents):
         logging.info("Data stored to Vector DB successfully")
 
     except Exception as e:
-        raise ImdbException(e)
+        raise ImdbException(e, sys)
 
 def get_retriever(GROQ_API_KEY, MODEL_NAME_LLAMA, vector_store):
     """
@@ -161,7 +166,7 @@ def get_retriever(GROQ_API_KEY, MODEL_NAME_LLAMA, vector_store):
 
     try:
         # Initialize retriever
-        retriever=RetrievalQA.from_chain_type(
+        retriever= RetrievalQA.from_chain_type(
             llm=ChatGroq(api_key=GROQ_API_KEY, model=MODEL_NAME_LLAMA, temperature=0.5, streaming=True),
             chain_type='stuff',
             retriever=vector_store.as_retriever()
@@ -169,9 +174,8 @@ def get_retriever(GROQ_API_KEY, MODEL_NAME_LLAMA, vector_store):
         return retriever
     
     except Exception as e:
-        raise ImdbException(e)
+        raise ImdbException(e, sys)
     
-
 def get_response(query: str, retriever, chat_history: List[Dict] = None) -> str:
     # Check if chat history is provided
     """
@@ -234,3 +238,68 @@ def remove_query(text):
     """
 
     return text['result']
+
+# JWT Authentication Constants
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = os.getenv("ALGORITHM")
+
+# Password hashing
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# OAuth2 scheme for authentication
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+# Pydantic Models
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    username: str | None = None
+
+class User(BaseModel):
+    username: str
+    email: str | None = None
+    full_name: str | None = None
+    disabled: bool | None = None
+
+class UserInDB(User):
+    hashed_password: str
+
+class RequestState(BaseModel):
+    user_id: str
+    session_id: str
+    message: str
+
+# JWT Authentication Functions
+async def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
+
+async def get_password_hash(password):
+    return pwd_context.hash(password)
+
+async def get_user(username: str):
+    client = MongoClient(MONGODB_URI)
+    db = client["chat_db"]  # Database Name
+    users_collection = db["users"]  # Collection Name
+    user_data = users_collection.find_one({"username": username})
+    if user_data:
+        return UserInDB(**user_data)  # Convert MongoDB document to Pydantic model
+    return None
+
+async def authenticate_user(username: str, password: str):
+    user = await get_user(username)
+    if not user:
+        return False
+    if not await verify_password(password, user.hashed_password):
+        return False
+    return user
+
+async def create_access_token(data: dict, expires_delta: timedelta | None = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
