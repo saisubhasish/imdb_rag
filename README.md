@@ -18,7 +18,7 @@ The IMDB Movie Bot is a prototype system designed to help users find movies from
 - **Vector Store Integration**: Efficiently search and retrieve movies using a vector store.
 - **Natural Language Summaries**: Generate summaries of movie results in natural language.
 - **Follow-Up Interaction**: Handle follow-up questions based on the initial query context.
-- **User Authentication**: Manage user sessions and maintain context for follow-up queries.
+- **User Session**: Manage user sessions and maintain context for follow-up queries.
 
 ---
 
@@ -72,11 +72,6 @@ docker-compose up
 - FastAPI Backend: http://localhost:8080
 - Streamlit Frontend: http://localhost:8501
 
-**4. Streamlit UI guide**:
-Enter your user ID under “Enter your User ID:” field.
-Enter your queries under “Ask your question:” field.
-
-
 ## Docker Command	Description
 - docker-compose build:	Build the Docker images.
 - docker-compose up:	Start the services.
@@ -125,22 +120,6 @@ imdb-movie-bot/
 └── test.py                   # Test scripts
 ```
 
-## Flow Diagram
-1. **User Query**:
-- The user submits a natural language query via the Streamlit frontend.
-
-2. **Query Processing**:
-- The FastAPI backend processes the query using an LLM to extract filters and search terms.
-
-3. **Vector Store Search**:
-- The system queries the Qdrant vector store to retrieve relevant movies.
-
-4. **Results Generation**:
-- The LLM generates a natural language summary of the results.
-
-5. **Follow-Up Interaction**:
-- The system maintains context for follow-up questions and refines the search results.
-
 ## User Guide
 ### Starting a Session
 1. Open the Streamlit frontend at http://localhost:8501.
@@ -155,7 +134,7 @@ imdb-movie-bot/
 1. After submitting the initial query, you can ask follow-up questions (e.g., "Which one has the best reviews?").
 2. The system will maintain context and provide relevant responses.
 
-## Enhancements to be done
-1. User signup, loging
+# Enhancements to be done
+1. User signup, login
 2. Authentication Layer
 
