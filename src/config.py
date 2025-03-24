@@ -18,3 +18,5 @@ MODEL_NAME_LLAMA='deepseek-r1-distill-llama-70b'
 DATA_DUMP_FILE_PATH="C:/Users/saisu/Documents/Learning/RAG_project_imdb/data/imdb_top_1000.csv"
 CHUNK_SIZE=1000
 CHUNK_OVERLAP=50
+
+ACCESS_TOKEN_EXPIRE_MINUTES = 5184000  # 10 years
