@@ -9,6 +9,7 @@ from langchain_qdrant import Qdrant
 from langchain.schema import Document
 from passlib.context import CryptContext
 from langchain.chains import RetrievalQA
+from fastapi import HTTPException, status
 from langchain_openai import OpenAIEmbeddings
 from fastapi.security import OAuth2PasswordBearer
 from datetime import datetime, timedelta, timezone
@@ -332,23 +333,33 @@ async def authenticate_user(username: str, password: str):
 
 async def create_access_token(data: dict, expires_delta: timedelta | None = None):
     """
-    Creates a JWT access token for the given data.
+    Creates a JWT access token based on the given data and optional expiration delta.
 
     Args:
-        data (dict): The payload data to encode into the token.
-        expires_delta (timedelta | None, optional): The amount of time after which the token should expire. Defaults to None.
+        data (dict): The data to encode in the JWT token.
+        expires_delta (timedelta | None, optional): The expiration delta for the token. Defaults to None.
+
+    Raises:
+        HTTPException: If an error occurs while creating the access token.
 
     Returns:
         str: The encoded JWT access token.
     """
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
-    else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+    try:
+        to_encode = data.copy()
+        if expires_delta:
+            expire = datetime.now(timezone.utc) + expires_delta
+        else:
+            expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+        to_encode.update({"exp": expire})
+        encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+        return encoded_jwt
+    except Exception as e:
+        logging.error(f"Error creating access token: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Could not create access token"
+        )
 
 async def verify_token(token: str):
     """
@@ -360,6 +371,7 @@ async def verify_token(token: str):
     Returns:
         dict | None: The decoded payload if the token is valid, None otherwise.
     """
+
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
