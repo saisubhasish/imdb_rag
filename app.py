@@ -13,18 +13,18 @@ with col1:
     user_id_input = st.text_input("Enter your User ID:", key="user_id", on_change=lambda: start_session())
 
 with col2:
-    st.title("### 🎬 Chat with IMDB Movie Bot")
-    st.markdown("---")  # Vertical separator (not a true vertical line but gives separation)
+    st.title("🎬 Chat with IMDB Movie Bot")
+    st.markdown("---")  # Separator
 
 # Ensure session states exist
 if "session_id" not in st.session_state:
     st.session_state["session_id"] = None
-if "user_query" not in st.session_state:
-    st.session_state["user_query"] = ""
 if "bot_response" not in st.session_state:
     st.session_state["bot_response"] = ""
 if "latest_query" not in st.session_state:
     st.session_state["latest_query"] = ""
+if "input_buffer" not in st.session_state:
+    st.session_state["input_buffer"] = ""  # Separate input variable
 
 # Function to start a session
 def start_session():
@@ -44,11 +44,13 @@ def start_session():
 
 # Function to handle query submission
 def submit_query():
-    if st.session_state["user_query"].strip() and st.session_state["session_id"]:
+    user_query = st.session_state.get("input_buffer", "").strip()
+    
+    if user_query and st.session_state["session_id"]:
         payload = {
             "user_id": int(st.session_state["user_id"]),
             "session_id": st.session_state["session_id"],
-            "user_query": st.session_state["user_query"]
+            "user_query": user_query
         }
 
         try:
@@ -60,18 +62,19 @@ def submit_query():
         except requests.exceptions.RequestException as e:
             st.session_state["bot_response"] = f"Request failed: {e}"
         
-        st.session_state["latest_query"] = st.session_state["user_query"]
-        # Clear the input field by resetting the session state
-        st.session_state["user_query"] = ""
+        st.session_state["latest_query"] = user_query  # Store latest query
+        st.session_state["input_buffer"] = ""  # **Clear input field**
     else:
         st.error("Please start a session before submitting a query.")
 
 # Chat Section
 with col2:
-    user_query_input = st.text_input("Ask your question:", key="user_query", on_change=submit_query)
+    user_query_input = st.text_input("Ask your question:", key="input_buffer", on_change=submit_query)
+
     if st.button("Submit"):
         submit_query()
 
     # Display conversation below "Submit" button
     st.write("**You:**", st.session_state.get("latest_query", ""))
     st.write("**Bot:**", st.session_state.get("bot_response", ""))
+

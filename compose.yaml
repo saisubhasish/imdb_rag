@@ -23,7 +23,7 @@ services:
     ports:
       - "8501:8501"
     environment:
-      - API_URL=http://backend:8080  # Use the service name "backend" instead of "localhost"
+      - API_URL=http://backend:8080  
     command: streamlit run app.py
 
 # The commented out section below is an example of how to define a PostgreSQL

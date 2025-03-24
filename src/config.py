@@ -13,7 +13,7 @@ MONGODB_URI = os.getenv("MONGODB_URI")
 # LLM API Keys & COnfigs
 GROQ_API_KEY=os.getenv("GROQ_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-MODEL_NAME_LLAMA='llama-3.2-11b-vision-preview'
+MODEL_NAME_LLAMA='deepseek-r1-distill-llama-70b'
 #  Data configs
 DATA_DUMP_FILE_PATH="C:/Users/saisu/Documents/Learning/RAG_project_imdb/data/imdb_top_1000.csv"
 CHUNK_SIZE=1000
