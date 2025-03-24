@@ -285,7 +285,7 @@ async def get_user(username: str):
     user_data = users_collection.find_one({"username": username})
     if user_data:
         # Convert MongoDB document to Pydantic model
-        user_data["id"] = str(user_data["_id"])  # Add the id field
+        user_data["id"] = str(user_data["_id"])  # Ensure string type
         return UserInDB(**user_data)
     return None
 
