@@ -1,5 +1,6 @@
 # IMDB RAG POC
-![Screenshot 2025-03-23 214813](https://github.com/user-attachments/assets/62ed1b28-d692-4b3e-aed3-aa001b2110cf)
+![Screenshot 2025-03-25 012110](https://github.com/user-attachments/assets/d6de1f1a-4315-4ee6-a4e6-b945941b1ba6)
+
 
 ## Architecture Overview
 ![imdb drawio (1)](https://github.com/user-attachments/assets/e9e7e1ad-f685-4db3-83fd-7ba7a384e6a3)
@@ -77,6 +78,21 @@ MongoDB Admin:	http://localhost:8081
 - Each session maintains independent conversation history
 
 3. Making Queries
+
+## Picture guide
+![Screenshot 2025-03-25 012221](https://github.com/user-attachments/assets/c5ea42ff-3268-431f-a77c-53a6d221edd8)
+
+![Screenshot 2025-03-25 012314](https://github.com/user-attachments/assets/d54632c6-3da6-4a4c-8760-30454a2a1fd8)
+
+![Screenshot 2025-03-25 012339](https://github.com/user-attachments/assets/7b293ede-d9e4-4459-8b08-d76d4ce57379)
+
+![Screenshot 2025-03-25 012544](https://github.com/user-attachments/assets/88a9efdd-b0f5-406f-9c62-c79b90b2e2f3)
+
+![Screenshot 2025-03-25 012602](https://github.com/user-attachments/assets/fb3d6fb9-19f2-475f-9be6-b1e06c7773f9)
+
+![Screenshot 2025-03-25 012643](https://github.com/user-attachments/assets/1c12ca93-4032-4db5-9909-95b41e7b7b87)
+
+![Screenshot 2025-03-25 012733](https://github.com/user-attachments/assets/198255f6-0522-45fe-b1a7-cdd20d23f8e2)
 
 Example searches:
 ```
