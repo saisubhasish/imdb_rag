@@ -2,8 +2,7 @@
 ![Screenshot 2025-03-23 214813](https://github.com/user-attachments/assets/62ed1b28-d692-4b3e-aed3-aa001b2110cf)
 
 ## Flow DIagram
-
-![IMDB drawio](https://github.com/user-attachments/assets/a5f9000f-8f85-482b-ae10-6965d4e45c26)
+![imdb drawio (1)](https://github.com/user-attachments/assets/e9e7e1ad-f685-4db3-83fd-7ba7a384e6a3)
 
 # IMDB Movie Bot
 
