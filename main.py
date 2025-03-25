@@ -13,27 +13,16 @@ from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.security import OAuth2PasswordRequestForm, HTTPBearer, HTTPAuthorizationCredentials
 
 from src.logger import logging
-from src.config import QDRANT_COLLECTION_NAME, QDRANT_HOST, QDRANT_API_KEY, OPENAI_API_KEY, GROQ_API_KEY, MODEL_NAME_LLAMA, MONGODB_URI, ACCESS_TOKEN_EXPIRE_MINUTES
+from src.config import QDRANT_COLLECTION_NAME, QDRANT_HOST, QDRANT_API_KEY, OPENAI_API_KEY, GROQ_API_KEY, MODEL_NAME_LLAMA, MONGODB_URI, ACCESS_TOKEN_EXPIRE_MINUTES, CONTEXT_WINDOW, users_collection, sessions_collection
 from src.utils import get_vector_store, get_retriever, get_response, Token, create_access_token, authenticate_user, get_password_hash, get_user, verify_token, UserInDB
 
 
 warnings.filterwarnings("ignore")
 
-# Load environment variables
-load_dotenv()
-
-# MongoDB Connection
-client = MongoClient(MONGODB_URI, tlsCAFile=certifi.where())  # SSL handshake failed
-db = client["chat_db"]  # Database Name
-sessions_collection = db["sessions"]  # Collection Name
-users_collection = db["users"]
-
 # Security
 security = HTTPBearer()
 
-# Define a maximum context window (for last 5 messages)
-CONTEXT_WINDOW = 5
-
+# Create FastAPI app
 app = FastAPI()
 
 # CORS settings
@@ -71,7 +60,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             detail="Invalid authentication credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    user = await get_user(payload.get("sub"))
+    user = await get_user(username=payload.get("sub"))
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
@@ -83,7 +72,7 @@ async def home():
 # Generate a numeric ID for new users
 @app.post("/register")
 async def register_user(user_data: UserCreate):
-    existing_user = await get_user(user_data.username)
+    existing_user = await get_user(username=user_data.username)
     if existing_user:
         raise HTTPException(status_code=400, detail="Username already registered")
     
