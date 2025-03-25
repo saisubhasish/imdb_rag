@@ -158,20 +158,20 @@ async def query_qdrant(
         chat_history: List[Dict] = session_document.get("history", [])
 
         # Get vector store and retriever
-        vector_store = get_vector_store(
+        vector_store = await get_vector_store(
             QDRANT_HOST=QDRANT_HOST,
             API_KEY=QDRANT_API_KEY,
             QDRANT_COLLECTION_NAME=QDRANT_COLLECTION_NAME,
             OPENAI_API_KEY=OPENAI_API_KEY
         )
-        retriever = get_retriever(
+        retriever = await get_retriever(
             GROQ_API_KEY=GROQ_API_KEY,
             MODEL_NAME_LLAMA=MODEL_NAME_LLAMA,
             vector_store=vector_store
         )
 
         # Get and store response
-        response = get_response(
+        response = await get_response(
             query=request.user_query,
             retriever=retriever,
             chat_history=chat_history
