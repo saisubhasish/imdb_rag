@@ -110,17 +110,16 @@ Follow-up: "Which one has the highest rating?"
 ### Project Structure
 ```
 imdb-movie-bot/
-├── docker/                  # Docker-related files
-├── data/                    # Dataset and processing scripts
+├── data/                       # Dataset and processing scripts
 ├── src/
-│   ├── config/              # Configuration management
-│   ├── auth/                # Authentication services
-│   ├── models/              # Pydantic models
-│   ├── services/            # Core business logic
-│   ├── utils/               # Helper functions
-│   └── main.py              # FastAPI entrypoint
-├── tests/                   # Test cases
-├── frontend/                # Streamlit application
+│   ├── config.py               # Configuration management
+│   ├── exception.py            # Authentication services
+│   ├── logger.py               # Pydantic models
+│   ├── utils.py                # Helper functions
+├── main.py                     # fastapi routes
+├── frontend/                   # Streamlit application
+├── Dockerfile                  # Docker-related files
+├── data_dump.py                # Dump data to qdrant
 ├── docker-compose.yml       # Service orchestration
 ├── requirements.txt         # Python dependencies
 └── README.md               # Documentation
