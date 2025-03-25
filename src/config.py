@@ -7,7 +7,7 @@ load_dotenv(find_dotenv())
 # Qdrant Configs
 QDRANT_COLLECTION_NAME = "imdb"
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
-QDRANT_HOST="https://2e65de7d-6361-40e7-8035-b288c90181a1.us-west-1-0.aws.cloud.qdrant.io:6333"
+QDRANT_HOST=os.getenv("QDRANT_HOST")
 # DB Connection
 MONGODB_URI = os.getenv("MONGODB_URI")
 # LLM API Keys & COnfigs
