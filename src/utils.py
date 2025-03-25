@@ -34,7 +34,7 @@ async def format_data_n_get_documents(DATA_DUMP_FILE_PATH):
     df = pd.read_csv(DATA_DUMP_FILE_PATH)
 
     try:
-        # Convert rows into LangChain Document format
+        # Convert rows into LangChain Document format containing metadata and structured content.
         documents = [
             Document(           # Maintain metadata
                 metadata={"title": row["Series_Title"], "year": row["Released_Year"], "genre": row["Genre"], "rating": row["IMDB_Rating"]},
@@ -53,7 +53,7 @@ async def format_data_n_get_documents(DATA_DUMP_FILE_PATH):
 
 def get_vector_store(QDRANT_HOST, API_KEY, QDRANT_COLLECTION_NAME, OPENAI_API_KEY):
     """
-    Initialize Qdrant client and vector store with OpenAI embeddings.
+    Initialize Qdrant client and vector store with OpenAI embeddings, to set Up Qdrant Vector Store.
 
     Args:
         QDRANT_HOST (str): The URL of the Qdrant server.
@@ -73,7 +73,7 @@ def get_vector_store(QDRANT_HOST, API_KEY, QDRANT_COLLECTION_NAME, OPENAI_API_KE
         if not client.collection_exists(QDRANT_COLLECTION_NAME):
             client.create_collection(
                 collection_name=QDRANT_COLLECTION_NAME,
-                vectors_config=VectorParams(size=1536, distance=Distance.COSINE)
+                vectors_config=VectorParams(size=1536, distance=Distance.COSINE)    # 1536 used by OpenAI embeddings
             )
 
     except Exception as e:
@@ -82,7 +82,7 @@ def get_vector_store(QDRANT_HOST, API_KEY, QDRANT_COLLECTION_NAME, OPENAI_API_KE
     # Initialize embeddings
     embeddings = OpenAIEmbeddings(api_key=OPENAI_API_KEY)
 
-    # Connect vector store
+    # Connects Qdrant with LangChain for storing and retrieving vectorized documents.
     vector_store = Qdrant(
         client=client,
         collection_name=QDRANT_COLLECTION_NAME,
