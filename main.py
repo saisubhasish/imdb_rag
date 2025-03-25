@@ -25,7 +25,7 @@ security = HTTPBearer()
 # Create FastAPI app
 app = FastAPI()
 
-# CORS settings
+# Configures CORS to allow cross-origin requests.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # For development only
@@ -34,23 +34,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Define request model
+# Defines query request structure with user_id, session_id, and user_query.
 class QueryRequest(BaseModel):
     user_id: str  # Add user_id to the request model
     session_id: str  # Unique session ID for maintaining context
     user_query: str
 
-# Define request model for session start
+# Defines the session start request.
 class StartSessionRequest(BaseModel):
     user_id: str  
 
+# Defines user registration details.
 class UserCreate(BaseModel):
     username: str
     password: str
     email: str | None = None
     full_name: str | None = None
 
-# Helper function to verify tokens
+# Validates authentication token and retrieves user info.
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
     payload = await verify_token(token)
@@ -69,7 +70,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 async def home():
     return {"message": "Server is up and running."}
 
-# Generate a numeric ID for new users
+# Checks if username exists, hashes the password, and saves user to MongoDB.
 @app.post("/register")
 async def register_user(user_data: UserCreate):
     existing_user = await get_user(username=user_data.username)
@@ -93,6 +94,7 @@ async def register_user(user_data: UserCreate):
         "user_id": str(result.inserted_id)  # Return string ID
     }
 
+# Returns user details after authentication.
 @app.get("/user_info")
 async def get_user_info(current_user: UserInDB = Depends(get_current_user)):
     return {
@@ -102,6 +104,7 @@ async def get_user_info(current_user: UserInDB = Depends(get_current_user)):
         "full_name": current_user.full_name
     }
 
+# Authenticates user and generates a JWT access token.
 @app.post("/generate_access_token")
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     user = await authenticate_user(form_data.username, form_data.password)
@@ -117,6 +120,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     )
     return Token(access_token=access_token, token_type="bearer")
 
+# Creates a new session and stores it in MongoDB.
 @app.post("/start_session")
 async def start_session(request: StartSessionRequest, current_user: UserInDB = Depends(get_current_user)):
     session_id = str(uuid.uuid4())
@@ -128,6 +132,7 @@ async def start_session(request: StartSessionRequest, current_user: UserInDB = D
     })
     return {"message": "Session started", "session_id": session_id}
 
+# Fetches session history, queries Qdrant for relevant data, generates a response, and stores conversation history.
 @app.post("/query")
 async def query_qdrant(
     request: QueryRequest,
