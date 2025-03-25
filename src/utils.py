@@ -51,7 +51,7 @@ async def format_data_n_get_documents(DATA_DUMP_FILE_PATH):
 
     return documents
 
-def get_vector_store(QDRANT_HOST, API_KEY, QDRANT_COLLECTION_NAME, OPENAI_API_KEY):
+async def get_vector_store(QDRANT_HOST, API_KEY, QDRANT_COLLECTION_NAME, OPENAI_API_KEY):
     """
     Initialize Qdrant client and vector store with OpenAI embeddings, to set Up Qdrant Vector Store.
 
@@ -144,7 +144,7 @@ async def store_data_to_vdb(vector_store, chunked_documents):
     except Exception as e:
         raise ImdbException(e, sys)
 
-def get_retriever(GROQ_API_KEY, MODEL_NAME_LLAMA, vector_store):
+async def get_retriever(GROQ_API_KEY, MODEL_NAME_LLAMA, vector_store):
     """
     Asynchronous function to get a retriever instance from ChatGroq and Qdrant vector store.
 
@@ -171,7 +171,7 @@ def get_retriever(GROQ_API_KEY, MODEL_NAME_LLAMA, vector_store):
     except Exception as e:
         raise ImdbException(e, sys)
     
-def get_response(query: str, retriever, chat_history: List[Dict] = None) -> str:
+async def get_response(query: str, retriever, chat_history: List[Dict] = None) -> str:
     """
     Gets a response to a query from the model.
 
@@ -202,13 +202,13 @@ def get_response(query: str, retriever, chat_history: List[Dict] = None) -> str:
 
     # Clean up the response if necessary
     if 'query' in response:
-        response = remove_query(response)
+        response = await remove_query(response)
     if "<think>" in response:
-        response = remove_think_tags(response)
+        response = await remove_think_tags(response)
 
     return response
 
-def remove_think_tags(text):
+async def remove_think_tags(text):
     """
     Remove any "<think> </think>" tags from the text to prevent the model from
     thinking out loud. This is useful for removing the model's internal
@@ -222,7 +222,7 @@ def remove_think_tags(text):
     """
     return re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
 
-def remove_query(text):
+async def remove_query(text):
     """
     Remove the query from the text.
 
