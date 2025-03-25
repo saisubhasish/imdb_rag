@@ -7,19 +7,19 @@
 # You can add other services your application may depend on here, such as a
 # database or a cache. For examples, see the Awesome Compose repository:
 # https://github.com/docker/awesome-compose
-version: '3.8'
+version: '3.8'    # Stable version
 
-services:
+services:         # Application Service 
   app:
     build: .
     ports:
-      - "8080:8080"
+      - "8080:8080"       # Building the FastAPI application from the Dockerfile in the current directory (.)
     volumes:
-      - .:/app
-      - ./logs:/app/logs
+      - .:/app            # Mount the current directory into the container  
+      - ./logs:/app/logs  # Mount the logs directory into the container
     environment:
-      - PYTHONUNBUFFERED=1
-      - GROQ_API_KEY=${GROQ_API_KEY}
+      - PYTHONUNBUFFERED=1              # ensures that Python outputs logs in real-time by disabling output buffering.
+      - GROQ_API_KEY=${GROQ_API_KEY}    # Get the values from the .env file
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - QDRANT_API_KEY=${QDRANT_API_KEY}
       - QDRANT_HOST=${QDRANT_HOST}
@@ -27,32 +27,32 @@ services:
       - SECRET_KEY=${SECRET_KEY}
       - ALGORITHM=${ALGORITHM}
     depends_on:
-      - mongo
+      - mongo       # Ensures MongoDB starts before the FastAPI app.
     command: uvicorn main:app --host 0.0.0.0 --port 8080 --reload
   
   mongo:
-    image: mongo:6.0
+    image: mongo:6.0    # Uses the MongoDB 6.0 official image.
     ports:
-      - "27017:27017"
+      - "27017:27017"    # Maps MongoDB’s default port (27017) to the host.
     volumes:
-      - mongodb_data:/data/db
+      - mongodb_data:/data/db     # Persists MongoDB data in a named Docker volume (mongodb_data).
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_USERNAME=root   # Sets MongoDB admin credentials.
       - MONGO_INITDB_ROOT_PASSWORD=example
 
   mongo-express:
-    image: mongo-express
+    image: mongo-express    # Uses the official Mongo Express image for easy Database Management, quick Setup for Development
     ports:
-      - "8081:8081"
+      - "8081:8081"         # Maps Mongo Express's default port (8081) to the host.
     environment:
-      - ME_CONFIG_MONGODB_ADMINUSERNAME=root
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=root    # Sets Mongo Express admin credentials
       - ME_CONFIG_MONGODB_ADMINPASSWORD=example
       - ME_CONFIG_MONGODB_SERVER=mongo
     depends_on:
-      - mongo
+      - mongo       # Ensures MongoDB starts before Mongo Express.
 
 volumes:
-  mongodb_data:
+  mongodb_data:    # Named volume for MongoDB
 
 # The commented out section below is an example of how to define a PostgreSQL
 # database that your application can use. `depends_on` tells Docker Compose to
